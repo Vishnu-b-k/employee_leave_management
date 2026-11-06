@@ -14,13 +14,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const response = NextResponse.json(
-      {
-        success: true,
-        message: "Logged out successfully.",
-      },
-      { status: 200 }
-    );
+    const acceptHeader = request.headers.get("accept") || "";
+    const wantsJson =
+      acceptHeader.includes("application/json") && !acceptHeader.includes("text/html");
+
+    const response = wantsJson
+      ? NextResponse.json(
+          {
+            success: true,
+            message: "Logged out successfully.",
+          },
+          { status: 200 }
+        )
+      : NextResponse.redirect(new URL("/login", request.url), { status: 303 });
 
     // Clear session and CSRF cookies
     response.cookies.set({
@@ -41,6 +47,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch {
+    const acceptHeader = request.headers.get("accept") || "";
+    if (acceptHeader.includes("text/html") || !acceptHeader.includes("application/json")) {
+      return NextResponse.redirect(new URL("/login", request.url), { status: 303 });
+    }
     return NextResponse.json(
       {
         success: false,
@@ -52,4 +62,9 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Support GET for direct browser link navigations
+export async function GET(request: NextRequest) {
+  return POST(request);
 }

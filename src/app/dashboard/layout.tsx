@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/session";
 import DashboardNav from "@/components/dashboard/dashboard-nav";
+import SignOutButton from "@/components/dashboard/sign-out-button";
 
 export const dynamic = "force-dynamic";
 
@@ -58,14 +59,7 @@ export default async function DashboardLayout({
 
             <div className="h-4 w-px bg-[#E7E6E0]" />
 
-            <form action="/api/v1/auth/logout" method="POST">
-              <button
-                type="submit"
-                className="text-xs font-medium text-[#7A3E3E] hover:text-[#991B1B] px-2.5 py-1.5 rounded hover:bg-[#FEF2F2] transition-colors"
-              >
-                Sign Out
-              </button>
-            </form>
+            <SignOutButton />
           </div>
         </div>
       </header>
