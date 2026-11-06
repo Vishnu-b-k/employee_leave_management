@@ -50,3 +50,7 @@ next-env.d.ts
 /secrets/
 *service-account*.json
 *adminsdk*.json
+
+# local uploads
+/uploads/
+
