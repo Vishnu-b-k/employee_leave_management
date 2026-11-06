@@ -111,7 +111,7 @@ export default async function DashboardPage() {
                 </div>
                 <h3 className="font-semibold text-sm text-[#143628] mb-1">Manager Approvals Queue</h3>
                 <p className="text-xs text-[#526058] leading-relaxed mb-4">
-                  Review leave submissions from your assigned direct reports (DR-01). Approve, reject with comment, or request further information.
+                  Review leave submissions from your assigned direct reports. Approve, reject with comment, or request further information.
                 </p>
               </div>
               <Link

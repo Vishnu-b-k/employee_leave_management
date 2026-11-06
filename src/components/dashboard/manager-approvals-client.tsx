@@ -168,7 +168,7 @@ export function ManagerApprovalsClient({
         <div>
           <h1 className="text-xl font-bold text-[#143628]">Manager Approvals Queue</h1>
           <p className="text-xs text-[#526058] mt-1">
-            First-level review for direct reports of {managerName} (DR-01 Scoped Authorization)
+            First-level review for direct reports of {managerName}
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -190,13 +190,13 @@ export function ManagerApprovalsClient({
         </div>
       )}
 
-      {/* DR-01 Scope Enforcement Note */}
-      <div className="p-4 rounded-xl bg-[#F0F7F2] border border-[#D5EADB] flex items-start space-x-3">
+      {/* Scope Advisory Note */}
+      <div className="p-3.5 rounded-xl bg-[#F0F7F2] border border-[#D5EADB] flex items-start space-x-3">
         <div className="w-5 h-5 rounded-full bg-[#143628] text-white flex items-center justify-center text-xs shrink-0 mt-0.5">
           ✓
         </div>
         <div className="text-xs text-[#143628] leading-relaxed">
-          <span className="font-semibold">DR-01 Authorization Enforced:</span> You are strictly authorized to view and act on leave requests from employees who have you assigned as their direct manager. No self-approval is permitted (DR-10).
+          <span className="font-semibold">Reporting Scope:</span> You are reviewing leave requests for your assigned direct reports. Self-approval of personal leave is prohibited and routed to your Department Head.
         </div>
       </div>
 

@@ -22,13 +22,13 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-[#FBFBFA] flex flex-col font-sans">
       {/* Top Navigation */}
       <header className="border-b border-[#E7E6E0] bg-white sticky top-0 z-40 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-6">
-            <Link href="/dashboard" className="flex items-center space-x-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3 lg:gap-6">
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+            <Link href="/dashboard" className="flex items-center space-x-2.5 shrink-0">
               <div className="w-8 h-8 rounded-lg bg-[#143628] flex items-center justify-center text-[#EBF5EE] font-bold text-sm shadow-xs">
                 LF
               </div>
-              <span className="font-semibold text-base text-[#143628] tracking-tight">LeaveFlow</span>
+              <span className="font-semibold text-base text-[#143628] tracking-tight hidden sm:inline">LeaveFlow</span>
             </Link>
 
             {/* Navigation links based on authoritative PostgreSQL roles */}
@@ -40,13 +40,13 @@ export default async function DashboardLayout({
           </div>
 
           {/* User info and Logout */}
-          <div className="flex items-center space-x-4">
-            <div className="text-right hidden sm:block">
-              <div className="text-xs font-semibold text-[#143628]">{user.display_name}</div>
-              <div className="text-[11px] text-[#5C6E63]">{user.email}</div>
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 ml-auto">
+            <div className="text-right hidden xl:block max-w-[180px]">
+              <div className="text-xs font-semibold text-[#143628] truncate">{user.display_name}</div>
+              <div className="text-[11px] text-[#5C6E63] truncate">{user.email}</div>
             </div>
 
-            <div className="flex items-center space-x-1.5">
+            <div className="hidden md:flex items-center gap-1.5 shrink-0">
               {user.roles.map((role) => (
                 <span
                   key={role}
@@ -57,7 +57,7 @@ export default async function DashboardLayout({
               ))}
             </div>
 
-            <div className="h-4 w-px bg-[#E7E6E0]" />
+            <div className="h-4 w-px bg-[#E7E6E0] hidden md:block" />
 
             <SignOutButton />
           </div>

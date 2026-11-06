@@ -358,7 +358,7 @@ export function EmployeeLeaveClient({
           <div className="text-lg font-semibold text-[#143628]">
             {managerName || "Department Head"}
           </div>
-          <div className="text-[11px] text-[#5C6E63] mt-1">First-level reviewer (DR-01)</div>
+          <div className="text-[11px] text-[#5C6E63] mt-1">First-level reviewer</div>
         </div>
 
         <div className="bg-white border border-[#E7E6E0] rounded-xl p-5 shadow-2xs">
@@ -538,7 +538,7 @@ export function EmployeeLeaveClient({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="bg-white rounded-xl shadow-xl border border-[#E7E6E0] max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#E7E6E0]">
-              <h2 className="text-base font-bold text-[#143628]">File Formal Appeal to Department Head (DR-03)</h2>
+              <h2 className="text-base font-bold text-[#143628]">File Formal Appeal to Department Head</h2>
               <button
                 type="button"
                 onClick={() => setAppealModalOpen(false)}

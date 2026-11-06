@@ -20,10 +20,10 @@ export default function DashboardNav({ isEmployee, isManager, isHOD }: Dashboard
   };
 
   return (
-    <nav className="flex items-center space-x-1">
+    <nav className="flex items-center gap-1 shrink-0 overflow-x-auto">
       <Link
         href="/dashboard"
-        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+        className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
           isActive("/dashboard")
             ? "bg-[#143628] text-white shadow-2xs"
             : "text-[#526058] hover:text-[#143628] hover:bg-[#F0EFEA]"
@@ -35,7 +35,7 @@ export default function DashboardNav({ isEmployee, isManager, isHOD }: Dashboard
       {isEmployee && (
         <Link
           href="/dashboard/employee"
-          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+          className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
             isActive("/dashboard/employee")
               ? "bg-[#143628] text-white shadow-2xs"
               : "text-[#526058] hover:text-[#143628] hover:bg-[#F0EFEA]"
@@ -48,7 +48,7 @@ export default function DashboardNav({ isEmployee, isManager, isHOD }: Dashboard
       {isManager && (
         <Link
           href="/dashboard/manager"
-          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+          className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
             isActive("/dashboard/manager")
               ? "bg-[#143628] text-white shadow-2xs"
               : "text-[#526058] hover:text-[#143628] hover:bg-[#F0EFEA]"
@@ -61,7 +61,7 @@ export default function DashboardNav({ isEmployee, isManager, isHOD }: Dashboard
       {isHOD && (
         <Link
           href="/dashboard/hod"
-          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+          className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
             isActive("/dashboard/hod")
               ? "bg-[#143628] text-white shadow-2xs"
               : "text-[#526058] hover:text-[#143628] hover:bg-[#F0EFEA]"

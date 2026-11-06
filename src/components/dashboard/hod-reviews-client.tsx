@@ -211,12 +211,12 @@ export function HodReviewsClient({
             <div className="flex items-center justify-between pb-3 border-b border-[#E7E6E0]">
               <h2 className="text-base font-bold text-[#143628]">
                 {decisionAction === "HOD_APPROVE"
-                  ? "Authorize Extended Leave (HOD Final Approval)"
+                  ? "Authorize Extended Leave"
                   : decisionAction === "HOD_REJECT"
-                  ? "Reject Extended Leave (Terminal HOD Rejection)"
+                  ? "Reject Extended Leave"
                   : decisionAction === "APPEAL_APPROVE"
-                  ? "Overturn Manager Rejection (APPROVED_ON_APPEAL)"
-                  : "Uphold Manager Rejection (APPEAL_REJECTED)"}
+                  ? "Overturn Manager Rejection (Approve Leave)"
+                  : "Uphold Manager Rejection"}
               </h2>
               <button
                 type="button"
@@ -340,7 +340,7 @@ export function HodReviewsClient({
             {activeTab === "long_leave"
               ? "Long Leave Review Queue (>3 Days)"
               : activeTab === "appeals"
-              ? "Appeals Review Tribunal (DR-03)"
+              ? "Employee Appeals Review"
               : "All Departmental Requests"}
           </h2>
           <span className="text-xs text-[#526058] font-medium">Department Review</span>
