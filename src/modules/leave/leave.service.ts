@@ -379,7 +379,7 @@ export class LeaveService {
       }
 
       // 4. Validate allowed current status for manager decision
-      const validStartingStatuses = [LeaveStatus.PENDING_MANAGER, LeaveStatus.INFO_REQUESTED];
+      const validStartingStatuses: LeaveStatus[] = [LeaveStatus.PENDING_MANAGER, LeaveStatus.INFO_REQUESTED];
       if (!validStartingStatuses.includes(request.status)) {
         throw new LeaveWorkflowError(
           `Cannot perform manager action ${action} on request with status: ${request.status}`,
