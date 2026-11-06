@@ -46,9 +46,10 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal server error";
+    const status = error instanceof Error && (error.message.includes("Invalid file") || error.message.includes("exceeds maximum")) ? 400 : 500;
     return NextResponse.json(
-      { success: false, error: { code: "INTERNAL_ERROR", message } },
-      { status: 500 }
+      { success: false, error: { code: status === 400 ? "INVALID_FILE" : "INTERNAL_ERROR", message } },
+      { status }
     );
   }
 }

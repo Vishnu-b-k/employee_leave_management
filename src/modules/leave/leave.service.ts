@@ -383,7 +383,7 @@ export class LeaveService {
       if (!validStartingStatuses.includes(request.status)) {
         throw new LeaveWorkflowError(
           `Cannot perform manager action ${action} on request with status: ${request.status}`,
-          400,
+          409,
           "INVALID_STATE_TRANSITION"
         );
       }
@@ -628,8 +628,8 @@ export class LeaveService {
         if (request.status !== LeaveStatus.PENDING_HOD) {
           throw new LeaveWorkflowError(
             `HOD_APPROVE requires request status to be PENDING_HOD, but found: ${request.status}`,
-            400,
-            "INVALID_STATE"
+            409,
+            "INVALID_STATE_TRANSITION"
           );
         }
         newStatus = LeaveStatus.APPROVED;
@@ -638,8 +638,8 @@ export class LeaveService {
         if (request.status !== LeaveStatus.PENDING_HOD) {
           throw new LeaveWorkflowError(
             `HOD_REJECT requires request status to be PENDING_HOD, but found: ${request.status}`,
-            400,
-            "INVALID_STATE"
+            409,
+            "INVALID_STATE_TRANSITION"
           );
         }
         newStatus = LeaveStatus.REJECTED_BY_HOD;
@@ -648,8 +648,8 @@ export class LeaveService {
         if (request.status !== LeaveStatus.UNDER_APPEAL) {
           throw new LeaveWorkflowError(
             `APPEAL_APPROVE requires request status to be UNDER_APPEAL, but found: ${request.status}`,
-            400,
-            "INVALID_STATE"
+            409,
+            "INVALID_STATE_TRANSITION"
           );
         }
         // Appeal overturn moves UNDER_APPEAL to APPROVED_ON_APPEAL
@@ -660,8 +660,8 @@ export class LeaveService {
         if (request.status !== LeaveStatus.UNDER_APPEAL) {
           throw new LeaveWorkflowError(
             `APPEAL_REJECT requires request status to be UNDER_APPEAL, but found: ${request.status}`,
-            400,
-            "INVALID_STATE"
+            409,
+            "INVALID_STATE_TRANSITION"
           );
         }
         // An upheld appeal moves UNDER_APPEAL to APPEAL_REJECTED
@@ -805,8 +805,8 @@ export class LeaveService {
       if (request.status !== LeaveStatus.REJECTED_BY_MANAGER) {
         throw new LeaveWorkflowError(
           `Appeals are only permitted for requests in REJECTED_BY_MANAGER status. Current status: ${request.status}`,
-          400,
-          "CANNOT_APPEAL_STATUS"
+          409,
+          "INVALID_STATE_TRANSITION"
         );
       }
 
@@ -879,6 +879,210 @@ export class LeaveService {
         request: updatedRequest,
         appeal: appealRecord,
       };
+    });
+  }
+
+  /**
+   * Cancels an eligible pending leave application (only in PENDING_MANAGER status).
+   */
+  static async cancelLeaveRequest(
+    user: AuthenticatedUser,
+    leaveRequestId: string,
+    version?: number
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const request = await tx.leaveRequest.findUnique({
+        where: { id: leaveRequestId },
+      });
+
+      if (!request) {
+        throw new LeaveWorkflowError("Leave request not found.", 404, "NOT_FOUND");
+      }
+
+      if (request.employee_id !== user.id) {
+        throw new LeaveWorkflowError("Only the requesting employee can cancel this application.", 403, "NOT_OWNER");
+      }
+
+      if (version !== undefined && request.version !== version) {
+        throw new LeaveWorkflowError(
+          "Conflict: The request has been modified by another transaction.",
+          409,
+          "CONCURRENCY_CONFLICT"
+        );
+      }
+
+      if (request.status !== LeaveStatus.PENDING_MANAGER) {
+        throw new LeaveWorkflowError(
+          `Only pending requests in PENDING_MANAGER status can be cancelled. Current status: ${request.status}`,
+          409,
+          "INVALID_STATE_TRANSITION"
+        );
+      }
+
+      const updatedRequest = await tx.leaveRequest.update({
+        where: { id: request.id, version: request.version },
+        data: {
+          status: LeaveStatus.CANCELLED,
+          version: { increment: 1 },
+        },
+      });
+
+      await tx.decision.create({
+        data: {
+          leave_request_id: request.id,
+          actor_id: user.id,
+          actor_role: AppRole.EMPLOYEE,
+          action: WorkflowAction.CANCEL,
+          previous_status: request.status,
+          new_status: LeaveStatus.CANCELLED,
+          comment: "Cancelled by employee.",
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actor_id: user.id,
+          actor_role: AppRole.EMPLOYEE,
+          action: WorkflowAction.CANCEL,
+          resource_type: "leave_request",
+          resource_id: request.id,
+          metadata: {
+            previous_status: request.status,
+            new_status: LeaveStatus.CANCELLED,
+            version: updatedRequest.version,
+          },
+        },
+      });
+
+      if (user.manager_id) {
+        await tx.notification.create({
+          data: {
+            recipient_user_id: user.manager_id,
+            event_type: NotificationEvent.NEW_REQUEST,
+            title: "Leave Application Cancelled",
+            message: `${user.display_name} has cancelled their leave application.`,
+            leave_request_id: request.id,
+          },
+        });
+      }
+
+      return updatedRequest;
+    });
+  }
+
+  /**
+   * Responds to manager information request with additional notes & optional documents,
+   * returning request to PENDING_MANAGER review.
+   */
+  static async resubmitLeaveRequest(
+    user: AuthenticatedUser,
+    leaveRequestId: string,
+    input: {
+      responseNotes?: string;
+      additionalDocuments?: Array<{
+        originalFilename: string;
+        storageKey: string;
+        mimeType: string;
+        fileSizeBytes: number;
+      }>;
+      version?: number;
+    }
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const request = await tx.leaveRequest.findUnique({
+        where: { id: leaveRequestId },
+      });
+
+      if (!request) {
+        throw new LeaveWorkflowError("Leave request not found.", 404, "NOT_FOUND");
+      }
+
+      if (request.employee_id !== user.id) {
+        throw new LeaveWorkflowError("Only the requesting employee can resubmit this application.", 403, "NOT_OWNER");
+      }
+
+      if (input.version !== undefined && request.version !== input.version) {
+        throw new LeaveWorkflowError(
+          "Conflict: The request has been modified by another transaction.",
+          409,
+          "CONCURRENCY_CONFLICT"
+        );
+      }
+
+      if (request.status !== LeaveStatus.INFO_REQUESTED) {
+        throw new LeaveWorkflowError(
+          `Only requests in INFO_REQUESTED status can be resubmitted. Current status: ${request.status}`,
+          409,
+          "INVALID_STATE_TRANSITION"
+        );
+      }
+
+      const updatedRequest = await tx.leaveRequest.update({
+        where: { id: request.id, version: request.version },
+        data: {
+          status: LeaveStatus.PENDING_MANAGER,
+          version: { increment: 1 },
+        },
+      });
+
+      if (input.additionalDocuments && input.additionalDocuments.length > 0) {
+        for (const doc of input.additionalDocuments) {
+          await tx.document.create({
+            data: {
+              leave_request_id: request.id,
+              uploaded_by_user_id: user.id,
+              original_filename: doc.originalFilename,
+              storage_key: doc.storageKey,
+              mime_type: doc.mimeType,
+              file_size_bytes: doc.fileSizeBytes,
+              upload_phase: UploadPhase.ADDITIONAL,
+            },
+          });
+        }
+      }
+
+      await tx.decision.create({
+        data: {
+          leave_request_id: request.id,
+          actor_id: user.id,
+          actor_role: AppRole.EMPLOYEE,
+          action: WorkflowAction.RESUBMIT,
+          previous_status: request.status,
+          new_status: LeaveStatus.PENDING_MANAGER,
+          comment: input.responseNotes || "Additional information provided by employee.",
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actor_id: user.id,
+          actor_role: AppRole.EMPLOYEE,
+          action: WorkflowAction.RESUBMIT,
+          resource_type: "leave_request",
+          resource_id: request.id,
+          metadata: {
+            previous_status: request.status,
+            new_status: LeaveStatus.PENDING_MANAGER,
+            additional_documents_count: input.additionalDocuments?.length || 0,
+            response_notes: input.responseNotes,
+            version: updatedRequest.version,
+          },
+        },
+      });
+
+      if (user.manager_id) {
+        await tx.notification.create({
+          data: {
+            recipient_user_id: user.manager_id,
+            event_type: NotificationEvent.REQUEST_RESUBMITTED,
+            title: "Leave Request Resubmitted",
+            message: `${user.display_name} has provided the requested information. Request is ready for review.`,
+            leave_request_id: request.id,
+          },
+        });
+      }
+
+      return updatedRequest;
     });
   }
 }
