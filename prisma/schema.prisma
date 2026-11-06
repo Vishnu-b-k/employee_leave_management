@@ -1,0 +1,308 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+
+  @@map("user_status")
+}
+
+enum AppRole {
+  EMPLOYEE
+  MANAGER
+  HOD
+
+  @@map("app_role")
+}
+
+enum LeaveStatus {
+  PENDING_MANAGER
+  INFO_REQUESTED
+  PENDING_HOD
+  APPROVED
+  APPROVED_ON_APPEAL
+  REJECTED_BY_MANAGER
+  REJECTED_BY_HOD
+  UNDER_APPEAL
+  APPEAL_REJECTED
+  CANCELLED
+
+  @@map("leave_status")
+}
+
+enum WorkflowAction {
+  SUBMIT
+  EDIT
+  CANCEL
+  APPROVE
+  REJECT
+  REQUEST_INFO
+  RESUBMIT
+  APPEAL
+  HOD_APPROVE
+  HOD_REJECT
+  APPEAL_APPROVE
+  APPEAL_REJECT
+
+  @@map("workflow_action")
+}
+
+enum UploadPhase {
+  INITIAL
+  ADDITIONAL
+
+  @@map("upload_phase")
+}
+
+enum AppealStatus {
+  PENDING
+  UPHELD
+  OVERTURNED
+
+  @@map("appeal_status")
+}
+
+enum NotificationEvent {
+  NEW_REQUEST
+  REQUEST_APPROVED
+  REQUEST_REJECTED
+  PENDING_HOD_APPROVAL
+  INFO_REQUESTED
+  REQUEST_RESUBMITTED
+  APPEAL_FILED
+  APPEAL_DECIDED
+
+  @@map("notification_event")
+}
+
+model Department {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique @db.VarChar(200)
+  hod_user_id String?  @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  hod_user User?  @relation("DepartmentHod", fields: [hod_user_id], references: [id], onDelete: SetNull)
+  members  User[] @relation("DepartmentMembers")
+
+  @@index([hod_user_id])
+  @@map("departments")
+}
+
+model User {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firebase_uid  String     @unique @db.VarChar(128)
+  email         String     @unique @db.VarChar(320)
+  display_name  String     @db.VarChar(200)
+  department_id String?    @db.Uuid
+  manager_id    String?    @db.Uuid
+  status        UserStatus @default(ACTIVE)
+  created_at    DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+
+  department        Department?  @relation("DepartmentMembers", fields: [department_id], references: [id], onDelete: SetNull)
+  hod_of_department Department[] @relation("DepartmentHod")
+  manager           User?        @relation("ManagerReports", fields: [manager_id], references: [id], onDelete: SetNull)
+  direct_reports    User[]       @relation("ManagerReports")
+
+  roles          UserRole[]     @relation("UserRoles")
+  granted_roles  UserRole[]     @relation("RolesGrantedBy")
+  leave_requests LeaveRequest[] @relation("EmployeeLeaveRequests")
+  decisions      Decision[]     @relation("ActorDecisions")
+  appeals        Appeal[]       @relation("EmployeeAppeals")
+  documents      Document[]     @relation("UploadedDocuments")
+  notifications  Notification[] @relation("UserNotifications")
+  audit_logs     AuditLog[]     @relation("ActorAuditLogs")
+
+  @@index([department_id])
+  @@index([manager_id])
+  @@index([status])
+  @@map("users")
+}
+
+model UserRole {
+  user_id            String   @db.Uuid
+  role               AppRole
+  granted_at         DateTime @default(now()) @db.Timestamptz(6)
+  granted_by_user_id String?  @db.Uuid
+
+  user       User  @relation("UserRoles", fields: [user_id], references: [id], onDelete: Cascade)
+  granted_by User? @relation("RolesGrantedBy", fields: [granted_by_user_id], references: [id], onDelete: SetNull)
+
+  @@id([user_id, role])
+  @@index([user_id])
+  @@map("user_roles")
+}
+
+model LeaveTypeConfig {
+  id                         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                       String   @unique @db.VarChar(100)
+  default_annual_allocation Int?
+  requires_document          Boolean  @default(false)
+  is_active                  Boolean  @default(true)
+  created_at                 DateTime @default(now()) @db.Timestamptz(6)
+
+  leave_requests LeaveRequest[]
+
+  @@index([is_active])
+  @@map("leave_type_configs")
+}
+
+model LeaveRequest {
+  id                      String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employee_id             String      @db.Uuid
+  leave_type_id           String      @db.Uuid
+  start_date              DateTime    @db.Date
+  end_date                DateTime    @db.Date
+  calculated_working_days Int
+  reason                  String      @db.Text
+  status                  LeaveStatus @default(PENDING_MANAGER)
+  requires_hod_approval   Boolean     @default(false)
+  version                 Int         @default(1)
+  submitted_at            DateTime    @default(now()) @db.Timestamptz(6)
+  created_at              DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
+
+  employee   User            @relation("EmployeeLeaveRequests", fields: [employee_id], references: [id], onDelete: Restrict)
+  leave_type LeaveTypeConfig @relation(fields: [leave_type_id], references: [id], onDelete: Restrict)
+
+  decisions     Decision[]
+  appeals       Appeal[]
+  documents     Document[]
+  notifications Notification[]
+
+  @@index([employee_id])
+  @@index([employee_id, status])
+  @@index([status])
+  @@index([leave_type_id])
+  @@index([start_date, end_date])
+  @@map("leave_requests")
+}
+
+model Decision {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leave_request_id String         @db.Uuid
+  actor_id         String         @db.Uuid
+  actor_role       AppRole
+  action           WorkflowAction
+  comment          String?        @db.Text
+  previous_status  LeaveStatus
+  new_status       LeaveStatus
+  created_at       DateTime       @default(now()) @db.Timestamptz(6)
+
+  leave_request LeaveRequest @relation(fields: [leave_request_id], references: [id], onDelete: Restrict)
+  actor         User         @relation("ActorDecisions", fields: [actor_id], references: [id], onDelete: Restrict)
+
+  appeals_as_manager_rejection Appeal[] @relation("ManagerRejectionDecision")
+  appeals_as_hod_decision     Appeal[] @relation("HodDecision")
+
+  @@index([leave_request_id])
+  @@index([actor_id])
+  @@index([leave_request_id, action])
+  @@map("decisions")
+}
+
+model Appeal {
+  id                            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leave_request_id              String       @db.Uuid
+  employee_id                   String       @db.Uuid
+  justification                 String       @db.Text
+  manager_rejection_decision_id String       @db.Uuid
+  hod_decision_id               String?      @db.Uuid
+  status                        AppealStatus @default(PENDING)
+  created_at                    DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
+
+  leave_request              LeaveRequest @relation(fields: [leave_request_id], references: [id], onDelete: Restrict)
+  employee                   User         @relation("EmployeeAppeals", fields: [employee_id], references: [id], onDelete: Restrict)
+  manager_rejection_decision Decision     @relation("ManagerRejectionDecision", fields: [manager_rejection_decision_id], references: [id], onDelete: Restrict)
+  hod_decision               Decision?    @relation("HodDecision", fields: [hod_decision_id], references: [id], onDelete: SetNull)
+
+  @@index([leave_request_id])
+  @@index([employee_id])
+  @@index([manager_rejection_decision_id])
+  @@map("appeals")
+}
+
+model Document {
+  id                  String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  leave_request_id    String      @db.Uuid
+  uploaded_by_user_id String      @db.Uuid
+  original_filename   String      @db.VarChar(500)
+  storage_key         String      @unique @db.VarChar(1000)
+  mime_type           String      @db.VarChar(100)
+  file_size_bytes     Int
+  upload_phase        UploadPhase
+  created_at          DateTime    @default(now()) @db.Timestamptz(6)
+
+  leave_request LeaveRequest @relation(fields: [leave_request_id], references: [id], onDelete: Restrict)
+  uploaded_by   User         @relation("UploadedDocuments", fields: [uploaded_by_user_id], references: [id], onDelete: Restrict)
+
+  @@index([leave_request_id])
+  @@index([uploaded_by_user_id])
+  @@map("documents")
+}
+
+model Holiday {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date       DateTime @unique @db.Date
+  name       String   @db.VarChar(200)
+  year       Int
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([year])
+  @@map("holidays")
+}
+
+model Notification {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipient_user_id String            @db.Uuid
+  event_type        NotificationEvent
+  title             String            @db.VarChar(300)
+  message           String            @db.Text
+  leave_request_id  String?           @db.Uuid
+  is_read           Boolean           @default(false)
+  created_at        DateTime          @default(now()) @db.Timestamptz(6)
+
+  recipient     User          @relation("UserNotifications", fields: [recipient_user_id], references: [id], onDelete: Cascade)
+  leave_request LeaveRequest? @relation(fields: [leave_request_id], references: [id], onDelete: SetNull)
+
+  @@index([recipient_user_id, is_read])
+  @@index([leave_request_id])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actor_id      String?         @db.Uuid
+  actor_role    AppRole?
+  action        WorkflowAction
+  resource_type String          @db.VarChar(50)
+  resource_id   String          @db.Uuid
+  metadata      Json?
+  ip_address    String?         @db.Inet
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+
+  actor User? @relation("ActorAuditLogs", fields: [actor_id], references: [id], onDelete: SetNull)
+
+  @@index([resource_type, resource_id])
+  @@index([actor_id])
+  @@index([created_at(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model SystemConfig {
+  key         String   @id @db.VarChar(100)
+  value       String   @db.Text
+  description String?  @db.Text
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@map("system_config")
+}
