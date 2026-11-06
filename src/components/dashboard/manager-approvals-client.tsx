@@ -368,9 +368,14 @@ export function ManagerApprovalsClient({
                     </td>
                     <td className="p-3.5">
                       {req.documents.length > 0 ? (
-                        <span className="text-[11px] text-[#143628] font-mono font-medium">
+                        <a
+                          href={`/api/v1/documents/${req.documents[0].id || (req.documents[0] as any).storage_key || (req.documents[0] as any).storageKey}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-[#143628] font-mono font-medium underline hover:text-[#0F291E]"
+                        >
                           📎 {req.documents.length} File(s)
-                        </span>
+                        </a>
                       ) : (
                         <span className="text-[11px] text-gray-400">None</span>
                       )}

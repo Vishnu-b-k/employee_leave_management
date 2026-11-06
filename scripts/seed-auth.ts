@@ -1,4 +1,5 @@
 // Standalone CLI runner for demo accounts seeding
+import "dotenv/config";
 import { seedDemoAccounts } from "../src/lib/seed/seed-auth";
 
 async function main() {

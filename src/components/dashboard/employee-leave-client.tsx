@@ -638,8 +638,15 @@ export function EmployeeLeaveClient({
                   <div className="space-y-1">
                     {detailModalRequest.documents.map((d, i) => (
                       <div key={i} className="p-2 bg-[#F0F7F2] border border-[#D5EADB] rounded flex items-center justify-between text-[11px]">
-                        <span>📎 {d.original_filename || d.originalFilename}</span>
-                        <span className="font-mono text-[#2D6A4F] text-[10px]">Verified</span>
+                        <a
+                          href={`/api/v1/documents/${d.id || d.storage_key || d.storageKey}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline font-semibold text-[#143628] flex items-center gap-1"
+                        >
+                          📎 {d.original_filename || d.originalFilename}
+                        </a>
+                        <span className="font-mono text-[#2D6A4F] text-[10px]">Verified Document</span>
                       </div>
                     ))}
                   </div>
@@ -749,6 +756,68 @@ export function EmployeeLeaveClient({
                       >
                         Details
                       </button>
+
+                      {/* Rule: Cancel eligible while in PENDING_MANAGER */}
+                      {req.status === "PENDING_MANAGER" && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!confirm("Are you sure you want to cancel this leave application?")) return;
+                            try {
+                              const res = await fetch(`/api/v1/leave-requests/${req.id}/cancel`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ version: req.version }),
+                              });
+                              const data = await res.json();
+                              if (res.ok && data.success) {
+                                setRequests((prev) =>
+                                  prev.map((r) => (r.id === req.id ? { ...r, status: "CANCELLED", version: r.version + 1 } : r))
+                                );
+                                setFormSuccess("Application cancelled successfully.");
+                              } else {
+                                alert(data.error?.message || "Could not cancel request.");
+                              }
+                            } catch (e: any) {
+                              alert(e.message || "Failed to cancel request.");
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded border border-gray-300 text-gray-600 font-medium hover:bg-gray-100"
+                        >
+                          Cancel
+                        </button>
+                      )}
+
+                      {/* Rule: Respond to Manager Info Request */}
+                      {req.status === "INFO_REQUESTED" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const notes = prompt("Enter additional information / clarification for Manager:");
+                            if (!notes) return;
+                            fetch(`/api/v1/leave-requests/${req.id}/resubmit`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ responseNotes: notes, version: req.version }),
+                            })
+                              .then((r) => r.json())
+                              .then((data) => {
+                                if (data.success) {
+                                  setRequests((prev) =>
+                                    prev.map((r) => (r.id === req.id ? { ...r, status: "PENDING_MANAGER", version: r.version + 1 } : r))
+                                  );
+                                  setFormSuccess("Information submitted. Application returned to Manager review.");
+                                } else {
+                                  alert(data.error?.message || "Failed to submit response.");
+                                }
+                              })
+                              .catch((err) => alert(err.message));
+                          }}
+                          className="px-2.5 py-1 rounded bg-[#D97706] text-white font-semibold hover:bg-[#B45309]"
+                        >
+                          Respond
+                        </button>
+                      )}
 
                       {/* Rule: Only allow appeal against REJECTED_BY_MANAGER */}
                       {req.status === "REJECTED_BY_MANAGER" && (

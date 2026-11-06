@@ -38,6 +38,8 @@ ENV HOSTNAME="0.0.0.0"
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+RUN mkdir -p /app/uploads/documents && chown -R nextjs:nodejs /app/uploads
+
 COPY --from=builder /app/public ./public
 
 # Automatically leverage output traces to reduce image size
