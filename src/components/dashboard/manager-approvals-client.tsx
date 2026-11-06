@@ -321,7 +321,7 @@ export function ManagerApprovalsClient({
           <h2 className="text-sm font-semibold text-[#143628]">
             {filterTab === "pending" ? "Pending Approvals Queue" : "All Submissions Queue"}
           </h2>
-          <span className="text-xs text-[#526058] font-mono">DR-01 SCOPE</span>
+          <span className="text-xs text-[#526058] font-medium">Direct Reports Queue</span>
         </div>
 
         {filteredRequests.length === 0 ? (
@@ -361,9 +361,9 @@ export function ManagerApprovalsClient({
                     <td className="p-3.5 font-semibold">
                       {req.calculated_working_days} {req.calculated_working_days === 1 ? "day" : "days"}
                       {req.calculated_working_days > 3 ? (
-                        <span className="block text-[10px] text-[#D97706] font-mono">Routes to HOD</span>
+                        <span className="block text-[10px] text-[#B45309] font-medium">Escalates to HOD</span>
                       ) : (
-                        <span className="block text-[10px] text-[#166534] font-mono">Final Approval</span>
+                        <span className="block text-[10px] text-[#166534] font-medium">Direct Approval</span>
                       )}
                     </td>
                     <td className="p-3.5">

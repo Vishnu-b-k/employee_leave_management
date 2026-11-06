@@ -446,21 +446,38 @@ export function EmployeeLeaveClient({
               </div>
 
               {estimatedWorkingDays !== null && (
-                <div className={`p-2.5 rounded-lg border text-[11px] flex items-center justify-between ${
+                <div className={`p-3 rounded-xl border text-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 ${
                   estimatedWorkingDays > 3
-                    ? "bg-[#FEF3C7] border-[#FDE68A] text-[#92400E]"
+                    ? "bg-[#FEF3C7]/70 border-[#FDE68A] text-[#92400E]"
                     : "bg-[#F0F7F2] border-[#D5EADB] text-[#143628]"
                 }`}>
-                  <span>Calculated Working Days (Excl. Weekends):</span>
-                  <span className="font-bold font-mono">
-                    {estimatedWorkingDays} Day(s) {estimatedWorkingDays > 3 ? "— Long Leave (>3d Rule)" : "— Short Leave (<=3d)"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-[#5C6E63]">Duration:</span>
+                    <span className="font-semibold text-sm text-[#143628]">
+                      {estimatedWorkingDays} {estimatedWorkingDays === 1 ? "Working Day" : "Working Days"}
+                    </span>
+                    <span className="text-[11px] text-[#5C6E63]">(excluding weekends)</span>
+                  </div>
+                  {estimatedWorkingDays > 3 ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
+                      Requires HOD Approval (&gt;3 Days)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#EBF5EE] text-[#143628] border border-[#CDE5D4]">
+                      Manager Direct Approval
+                    </span>
+                  )}
                 </div>
               )}
 
               <div>
                 <label className="block font-semibold text-[#143628] mb-1">
-                  Supporting Documents {estimatedWorkingDays !== null && estimatedWorkingDays > 3 ? "(Mandatory for >3 Days)" : "(Optional)"}
+                  Supporting Documents{" "}
+                  {estimatedWorkingDays !== null && estimatedWorkingDays > 3 ? (
+                    <span className="text-[#B45309] font-normal text-xs">(Required for leave exceeding 3 days)</span>
+                  ) : (
+                    <span className="text-[#5C6E63] font-normal text-xs">(Optional)</span>
+                  )}
                 </label>
                 <input
                   type="file"
@@ -741,7 +758,7 @@ export function EmployeeLeaveClient({
                     <td className="p-3.5 font-semibold">
                       {req.calculated_working_days} {req.calculated_working_days === 1 ? "day" : "days"}
                       {req.requires_hod_approval && (
-                        <span className="block text-[10px] text-[#D97706] font-mono">&gt;3d Long Leave</span>
+                        <span className="block text-[10px] text-[#B45309] font-medium">HOD Review Required</span>
                       )}
                     </td>
                     <td className="p-3.5">{getStatusBadge(req.status)}</td>

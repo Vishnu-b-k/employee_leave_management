@@ -343,7 +343,7 @@ export function HodReviewsClient({
               ? "Appeals Review Tribunal (DR-03)"
               : "All Departmental Requests"}
           </h2>
-          <span className="text-xs text-[#526058] font-mono">HOD OVERSIGHT</span>
+          <span className="text-xs text-[#526058] font-medium">Department Review</span>
         </div>
 
         {displayedItems.length === 0 ? (
